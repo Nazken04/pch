@@ -3,7 +3,7 @@ const { SECRET_KEY } = process.env;
 
 // Генерация JWT токена
 function generateToken(userId, role) {
-  const token = jwt.sign({ userId, role }, SECRET_KEY, { expiresIn: '1h' });
+  const token = jwt.sign({ userId, role }, SECRET_KEY, { expiresIn: '15h' });
   return token;
 }
 

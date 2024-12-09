@@ -1,208 +1,312 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Box,
+  Typography,
+} from "@mui/material";
+import { regions, positions, investigationTypes, interrogationLocations } from "../utils/data"; // Import data from data.js
 
-const CreationCardPage = () => {
-  const [autoFillData, setAutoFillData] = useState({});
-  const [caseNumber, setCaseNumber] = useState('');
-  const [summonedPerson, setSummonedPerson] = useState('');
-  const [formData, setFormData] = useState({
-    case_number: '',
-    ИИН_вызываемого: '',
-    БИН_ИИН: '',
-    планируемые_следственные_действия: '',
-    дата_и_время_проведения: '',
-    место_проведения: '',
-    статус_по_делу: '',
-    отношение_к_событию: '',
-    виды_следствия: '',
-    относится_ли_к_бизнесу: '',
-    ИИН_защитника: '',
-    обоснование: '',
-    результат: '',
+const CreateCardPage = () => {
+  const [cardData, setCardData] = useState({
+    case_number: "",
+    ИИН_вызываемого: "",
+    должность_вызываемого: "",
+    БИН_ИИН: "",
+    регион: "",
+    планируемые_следственные_действия: "",
+    дата_и_время_проведения: "",
+    время_ухода: "",
+    место_проведения: "",
+    статус_по_делу: "",
+    отношение_к_событию: "",
+    виды_следствия: "",
+    относится_ли_к_бизнесу: "",
+    ИИН_защитника: "",
+    обоснование: "",
+    результат: "",
+    status: "В работе", // initial status
   });
 
-  // Fetch autofill data when case number or ИИН changes
-  useEffect(() => {
-    const fetchAutoFillData = async () => {
-      if (caseNumber || summonedPerson) {
-        try {
-          const response = await axios.get('http://localhost:3350/api/cards/autofill', {
-            params: { case_number: caseNumber, ИИН_вызываемого: summonedPerson },
-            headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
-          });
-          setAutoFillData(response.data);
-        } catch (error) {
-          console.error('Error fetching autofill data:', error);
-        }
-      }
-    };
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    fetchAutoFillData();
-  }, [caseNumber, summonedPerson]);
-
-  // Handle form field changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setCardData({ ...cardData, [e.target.name]: e.target.value });
   };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSave = async () => {
+    await handleSubmit("В работе");
+  };
+
+  const handleSendForApproval = async () => {
+    await handleSubmit("На согласовании");
+  };
+
+  const handleSubmit = async (status) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.post('http://localhost:3350/api/cards', formData, {
-        headers: { Authorization: `Bearer ${token}` },
+      setIsSubmitting(true);
+      setError("");
+
+      // Создаём объект данных с нужным статусом
+      const updatedCardData = {
+        ...cardData,
+        status: status,  // Устанавливаем нужный статус
+      };
+
+      // Получаем токен из localStorage
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Токен отсутствует в localStorage");
+      }
+
+      // Отправляем запрос с актуальными данными
+      const response = await axios.post("http://localhost:3350/api/cards", updatedCardData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      alert('Карточка успешно создана');
+
+      alert("Карточка успешно создана");
+      console.log("Created card:", response.data);
+
+      // Очистка формы после успешной отправки
+      setCardData({
+        case_number: "",
+        ИИН_вызываемого: "",
+        должность_вызываемого: "",
+        БИН_ИИН: "",
+        регион: "",
+        планируемые_следственные_действия: "",
+        дата_и_время_проведения: "",
+        время_ухода: "",
+        место_проведения: "",
+        статус_по_делу: "",
+        отношение_к_событию: "",
+        виды_следствия: "",
+        относится_ли_к_бизнесу: "",
+        ИИН_защитника: "",
+        обоснование: "",
+        результат: "",
+        status: "В работе", // Reset статус
+      });
     } catch (error) {
-      console.error('Error creating card:', error);
-      alert('Ошибка при создании карточки');
+      console.error("Error creating card:", error.response?.data || error.message);
+      setError(error.response?.data?.message || "Ошибка создания карточки.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+
   return (
-    <div>
-      <h2>Создание карточки</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Номер УД:</label>
-          <input
-            type="text"
-            name="case_number"
-            value={formData.case_number || caseNumber}
-            onChange={(e) => setCaseNumber(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>ИИН вызываемого:</label>
-          <input
-            type="text"
-            name="ИИН_вызываемого"
-            value={formData.ИИН_вызываемого || summonedPerson}
-            onChange={(e) => setSummonedPerson(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Статья УК:</label>
-          <input
-            type="text"
-            name="статья"
-            value={autoFillData.статья || ''}
-            disabled
-          />
-        </div>
-        <div>
-          <label>Решение по делу:</label>
-          <input
-            type="text"
-            name="решение"
-            value={autoFillData.решение || ''}
-            disabled
-          />
-        </div>
-        <div>
-          <label>ФИО вызываемого:</label>
-          <input
-            type="text"
-            name="ФИО_вызываемого"
-            value={autoFillData.ФИО_вызываемого || ''}
-            disabled
-          />
-        </div>
-        <div>
-          <label>Должность вызываемого:</label>
-          <input
-            type="text"
+    <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Создать Карточку
+      </Typography>
+
+      {error && <Typography color="error">{error}</Typography>}
+
+      <form>
+        <TextField
+          label="Номер УД"
+          name="case_number"
+          value={cardData.case_number}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <TextField
+          label="ИИН вызываемого"
+          name="ИИН_вызываемого"
+          value={cardData.ИИН_вызываемого}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+          required
+        />
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Должность вызываемого</InputLabel>
+          <Select
             name="должность_вызываемого"
-            value={autoFillData.должность_вызываемого || ''}
-            disabled
-          />
-        </div>
-        <div>
-          <label>Место работы:</label>
-          <input
-            type="text"
-            name="место_работы"
-            value={autoFillData.место_работы || ''}
-            disabled
-          />
-        </div>
-        <div>
-          <label>Регион:</label>
-          <input
-            type="text"
+            value={cardData.должность_вызываемого}
+            onChange={handleChange}
+          >
+            {positions.map((position, index) => (
+              <MenuItem key={index} value={position.title}>
+                {position.title}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="БИН/ИИН"
+          name="БИН_ИИН"
+          value={cardData.БИН_ИИН}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Регион</InputLabel>
+          <Select
             name="регион"
-            value={autoFillData.регион || ''}
-            disabled
-          />
-        </div>
-        <div>
-          <label>Планируемые следственные действия:</label>
-          <input
-            type="text"
-            name="планируемые_следственные_действия"
-            value={formData.планируемые_следственные_действия}
+            value={cardData.регион}
             onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label>Дата и время проведения:</label>
-          <input
-            type="datetime-local"
-            name="дата_и_время_проведения"
-            value={formData.дата_и_время_проведения}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label>Место проведения:</label>
-          <input
-            type="text"
+          >
+            {regions.map((region, index) => (
+              <MenuItem key={index} value={region.name}>
+                {region.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Планируемые следственные действия"
+          name="планируемые_следственные_действия"
+          value={cardData.планируемые_следственные_действия}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Дата и время проведения"
+          name="дата_и_время_проведения"
+          type="datetime-local"
+          value={cardData.дата_и_время_проведения}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+        />
+        <TextField
+          label="Время ухода"
+          name="время_ухода"
+          type="datetime-local"
+          value={cardData.время_ухода}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+        />
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Место проведения</InputLabel>
+          <Select
             name="место_проведения"
-            value={formData.место_проведения}
+            value={cardData.место_проведения}
             onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label>ИИН защитника:</label>
-          <input
-            type="text"
-            name="ИИН_защитника"
-            value={formData.ИИН_защитника}
+          >
+            {interrogationLocations.map((location, index) => (
+              <MenuItem key={index} value={location.location}>
+                {location.location}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Статус по делу</InputLabel>
+          <Select
+            name="статус_по_делу"
+            value={cardData.статус_по_делу}
             onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label>Обоснование:</label>
-          <input
-            type="text"
-            name="обоснование"
-            value={formData.обоснование}
+          >
+            <MenuItem value="Ожидает обработки">В процессе</MenuItem>
+            <MenuItem value="Завершено">Завершено</MenuItem>
+            <MenuItem value="На рассмотрении">Отложено</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Отношение к событию</InputLabel>
+          <Select
+            name="отношение_к_событию"
+            value={cardData.отношение_к_событию}
             onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label>Результат:</label>
-          <input
-            type="text"
-            name="результат"
-            value={formData.результат}
+          >
+            <MenuItem value="Прямое">Прямое</MenuItem>
+            <MenuItem value="Косвенное">Косвенное</MenuItem>
+            <MenuItem value="Не связано">Не связано</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Относится ли к бизнесу?</InputLabel>
+          <Select
+            name="относится_ли_к_бизнесу"
+            value={cardData.относится_ли_к_бизнесу}
             onChange={handleChange}
-            required
-          />
-        </div>
-        <button type="submit">Создать карточку</button>
+          >
+            <MenuItem value="Да">Да</MenuItem>
+            <MenuItem value="Нет">Нет</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Виды следствия</InputLabel>
+          <Select
+            name="виды_следствия"
+            value={cardData.виды_следствия}
+            onChange={handleChange}
+          >
+            {investigationTypes.map((type, index) => (
+              <MenuItem key={index} value={type.type}>
+                {type.type}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="ИИН защитника"
+          name="ИИН_защитника"
+          value={cardData.ИИН_защитника}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Обоснование"
+          name="обоснование"
+          value={cardData.обоснование}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Результат"
+          name="результат"
+          value={cardData.результат}
+          onChange={handleChange}
+          fullWidth
+          margin="normal"
+        />
+
+        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSave}
+            disabled={isSubmitting}
+          >
+            Сохранить
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleSendForApproval}
+            disabled={isSubmitting}
+          >
+            На согласование
+          </Button>
+        </Box>
       </form>
-    </div>
+    </Box>
   );
 };
 
-export default CreationCardPage;
+export default CreateCardPage;

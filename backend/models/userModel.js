@@ -1,3 +1,5 @@
+// userModel.js
+
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -5,6 +7,8 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['Сотрудник СУ', 'Аналитик СД', 'Модератор'], required: true },
   name: { type: String, required: true },
+  регион: { type: String, required: true }, // новое поле для региона
+  department: { type: String, required: true }, // новое поле для департамента
   date_registered: { type: Date, default: Date.now },
   profile_image: { type: String },
 });

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { regions, departments } from "../utils/data"; // Импортируем данные из data.js
+
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -9,6 +11,8 @@ const RegisterPage = () => {
     password: "",
     name: "",
     role: "Сотрудник СУ", // Default role
+    region: "",  // Новый state для региона
+    department: "",  // Новый state для департамента
   });
 
   const [error, setError] = useState("");
@@ -79,6 +83,43 @@ const RegisterPage = () => {
             <option value="Сотрудник СУ">Сотрудник СУ</option>
             <option value="Аналитик СД">Аналитик СД</option>
             <option value="Модератор">Модератор</option>
+          </select>
+        </label>
+
+        {/* Список регионов */}
+        <label>
+          Регион:
+          <select
+            name="region"
+            value={formData.region}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Выберите регион</option>
+            {regions.map((region) => (
+              <option key={region._id} value={region.name}>
+                {region.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Список департаментов */}
+        <label>
+          Департамент:
+          <select
+            name="department"
+            value={formData.department}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Выберите департамент</option>
+            {departments.map((department) => (
+  <option key={department._id} value={department.name}>
+    {department.name} {/* Используйте department.name вместо department */}
+  </option>
+))}
+
           </select>
         </label>
 

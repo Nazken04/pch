@@ -1,14 +1,21 @@
 const mongoose = require('mongoose');
-const Counter = require('./counterModel'); // Ensure the Counter model is required correctly
+const Counter = require('./counterModel');
+const Cases = require('./casesModel');
+const IinFio = require('./iinFioModel');
+const Work = require('./workModel');
+const Position = require('./position');  // Подключаем модель для должности
+const Region = require('./region');  // Подключаем модель для региона
 
-// Define the card schema
+
+// Определение схемы карточки
 const CardSchema = new mongoose.Schema({
   registration_number: { type: String, required: true },
   creation_date: { type: Date, default: Date.now },
   case_number: { type: String, required: true },
-  статья: { type: String },
-  решение: { type: String },
-  фабула: { type: String },
+  дата_регистрации: { type: String },  // Дата регистрации
+  статья_ук_казахстана: { type: String },  // Статья УК Казахстана
+  решение_по_делу: { type: String},  // Решение по делу
+  краткая_фабула: { type: String},  // Краткая фабула
   ИИН_вызываемого: { type: String, required: true },
   ФИО_вызываемого: { type: String },
   должность_вызываемого: { type: String },
@@ -17,6 +24,7 @@ const CardSchema = new mongoose.Schema({
   регион: { type: String },
   планируемые_следственные_действия: { type: String, required: true },
   дата_и_время_проведения: { type: Date },
+  время_ухода: { type: Date }, 
   место_проведения: { type: String },
   следователь: { type: String, required: true },
   статус_по_делу: { type: String },
@@ -25,56 +33,81 @@ const CardSchema = new mongoose.Schema({
   относится_ли_к_бизнесу: { type: String },
   ИИН_защитника: { type: String },
   ФИО_защитника: { type: String },
+  БИН_ИИН_пенсионка: { type: String },
+  место_работы_пенсионка: { type: String },
   обоснование: { type: String, required: true },
   результат: { type: String, required: true },
+  ФИО_согласующего: { type: String },
   approval_path: [
     {
-      position: { type: String, required: true },
-      name: { type: String, required: true },
-      approval_status: { type: String, required: true },
-      approval_time: { type: Date, default: Date.now },
+      position: { type: String, required: true },   // Position of the approver (e.g., 'Аналитик СД')
+      name: { type: String, required: true },       // Name of the approver (e.g., analyst)
+      approval_status: { type: String, required: true, enum: ['Согласовано', 'Отказано', 'Отправлено на доработку', 'Оставлено без рассмотрения'] },  // Approval status
+      approval_time: { type: Date, default: Date.now },  // Timestamp of approval/rejection
+      reason: { type: String, default: '' },  // Reason for revision/denial (if any)
     },
   ],
-  status: { type: String, enum: ['В работе', 'На согласовании', 'Согласовано'], default: 'В работе' },
+  status: { type: String, enum: ['В работе', 'На согласовании', 'Согласовано', 'Отправлено на доработку', 'Оставлено без рассмотрения', 'Отказано' ], default: 'В работе' },
 });
 
-// Pre-save middleware to generate registration number
 CardSchema.pre('save', async function (next) {
   if (this.isNew) {
     try {
-      // Fetch and increment the counter for registration number
+      // Генерация регистрационного номера
       const counter = await Counter.findOneAndUpdate(
         { _id: 'registrationNumber' },
         { $inc: { sequence_value: 1 } },
         { new: true, upsert: true }
       );
-
-      // Ensure the counter value is valid and incremented
       if (!counter || !counter.sequence_value) {
-        throw new Error('Failed to increment sequence value');
+        throw new Error('Не удалось инкрементировать счетчик');
       }
-
-      // Generate the registration number from the counter's sequence_value
       const seqNumber = String(counter.sequence_value).padStart(3, '0');
       this.registration_number = `Z-${seqNumber}`;
 
-      console.log('Generated registration number:', this.registration_number);
+      // Подтягиваем данные из коллекции "Cases" по номеру дела (case_number)
+      const caseData = await Cases.findOne({ номер_дела: this.case_number });
+      if (caseData) {
+        this.дата_регистрации = caseData.дата_регистрации || '';  // Дата регистрации
+        this.статья_ук_казахстана = caseData.статья_ук_казахстана || '';  // Статья УК Казахстана
+        this.решение_по_делу = caseData.решение_по_делу || '';  // Решение по делу
+        this.краткая_фабула = caseData.краткая_фабула || '';  // Краткая фабула
+      } else {
+        console.log(`Данные для номера дела ${this.case_number} не найдены`);
+      }
+
+      // Подтягиваем данные по ИИН вызываемого
+      const iinData = await IinFio.findOne({ iin: this.ИИН_вызываемого });
+      if (iinData) {
+        this.ФИО_вызываемого = iinData.full_name;
+      }
+
+      // Проверка, если БИН_ИИН существует, ищем в коллекции Work по ИИН или БИН
+      const searchQuery = { iin: this.БИН_ИИН }; // Начнем с ИИН, если его нет - ищем по БИН
+      let workData = await Work.findOne(searchQuery);
+
+      if (!workData && this.БИН_ИИН.length === 12) {
+        // Если ИИН не найден, пробуем найти по БИН
+        workData = await Work.findOne({ bin: this.БИН_ИИН });
+      }
+
+      if (workData) {
+        this.место_работы = workData.workplace;
+      }
 
       next();
     } catch (error) {
-      console.error('Error generating registration number:', error);
-      next(error); // Pass the error to the next middleware or callback
+      console.error('Ошибка автозаполнения данных:', error);
+      next(error); // Передаем ошибку в следующий middleware
     }
   } else {
     next();
   }
 });
 
-// Remove or modify the unique index for registration_number
-// If you don't need uniqueness anymore, remove the line below
-// No 'unique: true'
 
-// Create the Card model from the schema
+
+
 const Card = mongoose.model('Card', CardSchema);
 
-module.exports = Card;
+module.exports = Card

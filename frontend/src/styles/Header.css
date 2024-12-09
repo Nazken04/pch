@@ -1,0 +1,61 @@
+/* Header.css */
+
+.header {
+    background-color: #4285f4; /* Google blue */
+    color: white;
+    padding: 10px 20px; /* Adjust padding as needed */
+    display: flex;
+    justify-content: space-between; /* Align items to left and right */
+    align-items: center; /* Vertically center items */
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+}
+
+
+
+.header nav ul {
+    list-style: none; /* Remove bullet points */
+    margin: 0;
+    padding: 0;
+    display: flex; /* Arrange list items horizontally */
+
+
+}
+
+
+.header nav li {
+    margin-left: 20px; /* Spacing between list items */
+
+
+
+}
+
+
+.header nav a,
+.header nav button {
+    color: white;
+    text-decoration: none; /* Remove underlines from links */
+    padding: 8px 15px; /* Add padding to links and buttons */
+    border-radius: 5px; /* Rounded corners */
+    transition: background-color 0.3s ease; /* Smooth background transition */
+}
+
+
+.header nav a:hover,
+.header nav button:hover {
+    background-color: rgba(255, 255, 255, 0.2); /* Light background on hover */
+
+}
+
+
+.header nav button { /* Style the Logout button */
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+
+}
+
+
+.profile-link {  /* Style the profile link differently (optional) */
+    font-weight: bold;
+
+}
